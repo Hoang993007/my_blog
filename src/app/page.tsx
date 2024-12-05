@@ -1,101 +1,314 @@
-import Image from "next/image";
+'use client';
+
+import * as fabric from 'fabric';
+import { useCallback, useRef } from 'react';
+import Canvas from './components/Canvas';
+
+const tokenScreenshot = {
+  mcapVolatility: -5.69,
+  mcap: '$3.9M',
+  vol24h: '$282K',
+  liquidity: '$565K',
+  tokenName: 'Bitcat',
+  tokenIcon:
+    'https://dd.dexscreener.com/ds-data/tokens/solana/4j9bDg7iWNah1Qa61rrqwWZMtEdqV3fV56SzyhfNpump/header.png?size=xl&key=021bbf',
+  tokenSymbol: 'BITCAT',
+};
+
+const centerGroup = (...elements: (fabric.FabricText | fabric.Group)[]) => {
+  const maxWidth = Math.max(...elements.map((element) => element.width));
+  elements.forEach((element) => {
+    element.left = (maxWidth - element.width) / 2;
+  });
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const canvasRef = useRef<fabric.Canvas | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const onLoad = useCallback(async (canvas: fabric.Canvas) => {
+    canvas.setDimensions({
+      width: 1161,
+      height: 610,
+    });
+    canvas.backgroundColor = 'black';
+
+    // BANNER
+    const img = await fabric.FabricImage.fromURL(
+      'https://dd.dexscreener.com/ds-data/tokens/solana/4j9bDg7iWNah1Qa61rrqwWZMtEdqV3fV56SzyhfNpump/header.png?size=xl&key=021bbf',
+    );
+    img.set({
+      left: 0,
+      top: 0,
+      angle: 0,
+    });
+    img.scaleToWidth(1161);
+    canvas.add(img);
+
+    // ICON
+    const icon = await fabric.FabricImage.fromURL(
+      'https://dd.dexscreener.com/ds-data/tokens/solana/4j9bDg7iWNah1Qa61rrqwWZMtEdqV3fV56SzyhfNpump.png?size=lg&key=021bbf',
+    );
+    icon.scaleToWidth(200);
+    icon.set({
+      left: 0,
+      top: 0,
+      clipPath: new fabric.Circle({
+        radius: 128,
+        originX: 'center',
+        originY: 'center',
+        left: 0,
+        top: 0,
+      }),
+      objectCaching: false, // Disable object caching to get a smoother appearance with border
+    });
+    const circleBorder = new fabric.Circle({
+      radius: 110, // Slightly larger radius to create a border effect
+      fill: 'transparent', // Make the circle transparent
+      stroke: 'black', // Border color
+      strokeWidth: 10, // Border width
+      originX: 'center', // Center the circle
+      originY: 'center', // Center the circle
+      left: 100, // Center the border on the canvas
+      top: 100, // Center the border on the canvas
+    });
+    circleBorder.scaleToWidth(200);
+    const iconGroup = new fabric.Group([icon, circleBorder]);
+
+    const tokenSymbolText = new fabric.FabricText(tokenScreenshot.tokenSymbol, {
+      left: 50,
+      top: 0,
+      fontFamily: 'Arial',
+      fontSize: 32,
+      fontWeight: 'bold',
+      fill: '#FFFFFF',
+    });
+
+    const tokenNameText = new fabric.FabricText(tokenScreenshot.tokenName, {
+      top: tokenSymbolText.height,
+      fontFamily: 'Arial',
+      fontSize: 32,
+      fontWeight: 'bold',
+      fill: '#FFFFFF',
+    });
+
+    centerGroup(tokenSymbolText, tokenNameText);
+    const tokenNameGroup = new fabric.Group([tokenSymbolText, tokenNameText], {
+      top: iconGroup.height,
+    });
+
+    centerGroup(iconGroup, tokenNameGroup);
+    const tokenNameGroupWithIcon = new fabric.Group(
+      [iconGroup, tokenNameGroup],
+      {
+        left: 50,
+        top: 260,
+      },
+    );
+
+    canvas.add(tokenNameGroupWithIcon);
+
+    // MCAP
+    const mcapText = new fabric.FabricText('MCAP ', {
+      left: 50,
+      top: 0,
+      fontFamily: 'Arial',
+      fontSize: 32,
+      fontWeight: 'bold',
+      fill: '#9d9d9d',
+    });
+
+    const mcapVolatility = new fabric.FabricText(
+      tokenScreenshot.mcapVolatility.toString() + '%',
+      {
+        left: mcapText.left + mcapText.width,
+        top: 0,
+        fontFamily: 'Arial',
+        fontSize: 32,
+        fontWeight: 'bold',
+        fill: '#FF0000',
+      },
+    );
+
+    const mcapTextTitleGroup = new fabric.Group([mcapText, mcapVolatility], {
+      top: 0,
+    });
+
+    const mcapValue = new fabric.FabricText(tokenScreenshot.mcap, {
+      top: mcapTextTitleGroup.height,
+      fontFamily: 'Arial',
+      fontSize: 50,
+      fontWeight: 'bold',
+      fill: '#FFFFFF',
+    });
+
+    centerGroup(mcapTextTitleGroup, mcapValue);
+    const mcapGroup = new fabric.Group([mcapTextTitleGroup, mcapValue], {});
+
+    // 24h VOL
+    const vol24hText = new fabric.FabricText('24H VOL ', {
+      left: 50,
+      top: 0,
+      fontFamily: 'Arial',
+      fontSize: 32,
+      fontWeight: 'bold',
+      fill: '#9d9d9d',
+    });
+
+    const vol24hValue = new fabric.FabricText(tokenScreenshot.vol24h, {
+      top: vol24hText.height,
+      fontFamily: 'Arial',
+      fontSize: 50,
+      fontWeight: 'bold',
+      fill: '#FFFFFF',
+    });
+
+    centerGroup(vol24hText, vol24hValue);
+    const vol24hGroup = new fabric.Group([vol24hText, vol24hValue], {
+      left: mcapGroup.width + 150,
+    });
+
+    // LIQUIDITY
+    const liquidityText = new fabric.FabricText('LIQUIDITY ', {
+      left: 50,
+      top: 0,
+      fontFamily: 'Arial',
+      fontSize: 32,
+      fontWeight: 'bold',
+      fill: '#9d9d9d',
+    });
+
+    const liquidityValue = new fabric.FabricText(tokenScreenshot.liquidity, {
+      top: liquidityText.height,
+      fontFamily: 'Arial',
+      fontSize: 50,
+      fontWeight: 'bold',
+      fill: '#FFFFFF',
+    });
+
+    centerGroup(liquidityText, liquidityValue);
+    const liquidityGroup = new fabric.Group([liquidityText, liquidityValue], {
+      left: mcapGroup.width + vol24hGroup.width + 150 * 2,
+    });
+
+    const screenShotGroup = new fabric.Group(
+      [mcapGroup, vol24hGroup, liquidityGroup],
+      {
+        top: 450,
+      },
+    );
+
+    screenShotGroup.set({
+      left: canvas.getWidth() - screenShotGroup.width - 50,
+    });
+
+    canvas.add(screenShotGroup);
+
+    // const text = new fabric.FabricText('Liquidity', {
+    //   originX: 'center',
+    //   top: 20,
+    //   textAlign: 'center',
+    //   fontFamily: 'Inter',
+    //   color: 'red',
+    //   styles: fabric.util.stylesFromArray(
+    //     [
+    //       {
+    //         style: {
+    //           fontWeight: 'bold',
+    //           fontSize: 64,
+    //         },
+    //         start: 0,
+    //         end: 9,
+    //       },
+    //     ],
+    //     'Liquidity',
+    //   ),
+    // });
+    // canvas.add(text);
+
+    // const animate = (toState: number) => {
+    //   text.animate(
+    //     { scaleX: Math.max(toState, 0.1) * 2 },
+    //     {
+    //       onChange: () => canvas.renderAll(),
+    //       onComplete: () => animate(Number(!toState)),
+    //       duration: 1000,
+    //       easing: toState
+    //         ? fabric.util.ease.easeInOutQuad
+    //         : fabric.util.ease.easeInOutSine,
+    //     },
+    //   );
+    // };
+    // animate(1);
+
+    const dataURL = canvas.toDataURL({
+      format: 'png',
+      quality: 1.0, // Quality for JPEG format (0.0 - 1.0)
+      multiplier: 1,
+    });
+
+    console.log(dataURL);
+  }, []);
+
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-gray-900 to-black p-8">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 mb-6">
+          Token Screenshot Generator
+        </h1>
+
+        <div className="bg-gray-800/50 rounded-lg p-6 backdrop-blur-sm border border-gray-700 text-gray-400 mb-5">
+          <p>
+            <b>Graphic editors:</b> Fabric.js
+          </p>
+          <p>
+            <b>Interactive UIs:</b> Konva.js
+          </p>
+          <p>
+            <b>Games, heavy visuals:</b> PixiJS
+          </p>
+          <p>
+            Github:{' '}
+            <a
+              href="https://github.com/fabricjs/fabric.js/blob/1f62cdecd7ec0c1f7caca1ab9273e4b45b87a975/.codesandbox/templates/next/components/Canvas.tsx"
+              className="text-purple-400 hover:text-purple-500 transition-colors"
+            >
+              fabricjs/fabric.js
+            </a>
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        <div className="bg-gray-800/50 rounded-lg p-6 backdrop-blur-sm border border-gray-700">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl text-gray-200 font-semibold">
+                FabricJS Preview
+              </h2>
+              <button
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 transition-colors rounded-md text-white font-medium"
+                onClick={() => {
+                  if (canvasRef.current) {
+                    const dataURL = canvasRef.current.toDataURL({
+                      format: 'png',
+                      quality: 1.0,
+                    });
+                    const link = document.createElement('a');
+                    link.download = 'token-screenshot.png';
+                    link.href = dataURL;
+                    link.click();
+                  }
+                }}
+              >
+                Download Image
+              </button>
+            </div>
+            <Canvas
+              ref={canvasRef}
+              onLoad={onLoad}
+              className="rounded-lg overflow-hidden"
+            />
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }
