@@ -3,17 +3,7 @@
 import * as fabric from 'fabric';
 import { useCallback, useRef } from 'react';
 import Canvas from './components/Canvas';
-
-const tokenScreenshot = {
-  mcapVolatility: -5.69,
-  mcap: '$3.9M',
-  vol24h: '$282K',
-  liquidity: '$565K',
-  tokenName: 'Bitcat',
-  tokenIcon:
-    'https://dd.dexscreener.com/ds-data/tokens/solana/4j9bDg7iWNah1Qa61rrqwWZMtEdqV3fV56SzyhfNpump/header.png?size=xl&key=021bbf',
-  tokenSymbol: 'BITCAT',
-};
+import axios from 'axios';
 
 const centerGroup = (...elements: (fabric.FabricText | fabric.Group)[]) => {
   const maxWidth = Math.max(...elements.map((element) => element.width));
@@ -26,6 +16,22 @@ export default function Home() {
   const canvasRef = useRef<fabric.Canvas | null>(null);
 
   const onLoad = useCallback(async (canvas: fabric.Canvas) => {
+    const tokenInfoFetchRes = await axios.get(
+      'https://api.raidenx.io/api/v1/sui/pairs/cetus-hippo-sui-200009',
+    );
+    const tokenInfo = tokenInfoFetchRes.data;
+    const tokenBaseInfo = tokenInfo.tokenBase;
+    const tokenScreenshot = {
+      tokenBanner: tokenBaseInfo.bannerImageUrl,
+      mcapVolatility: -5.69,
+      mcap: '$3.9M',
+      vol24h: '$282K',
+      liquidity: '$565K',
+      tokenName: tokenBaseInfo.name,
+      tokenIcon: tokenBaseInfo.logoImageUrl,
+      tokenSymbol: tokenBaseInfo.symbol,
+    };
+
     canvas.setDimensions({
       width: 1161,
       height: 610,
@@ -33,9 +39,9 @@ export default function Home() {
     canvas.backgroundColor = 'black';
 
     // BANNER
-    const img = await fabric.FabricImage.fromURL(
-      'https://dd.dexscreener.com/ds-data/tokens/solana/4j9bDg7iWNah1Qa61rrqwWZMtEdqV3fV56SzyhfNpump/header.png?size=xl&key=021bbf',
-    );
+    const img = await fabric.FabricImage.fromURL(tokenScreenshot.tokenBanner, {
+      // crossOrigin: 'anonymous',
+    });
     img.set({
       left: 0,
       top: 0,
@@ -45,15 +51,16 @@ export default function Home() {
     canvas.add(img);
 
     // ICON
-    const icon = await fabric.FabricImage.fromURL(
-      'https://dd.dexscreener.com/ds-data/tokens/solana/4j9bDg7iWNah1Qa61rrqwWZMtEdqV3fV56SzyhfNpump.png?size=lg&key=021bbf',
-    );
+    const icon = await fabric.FabricImage.fromURL(tokenScreenshot.tokenIcon, {
+      // crossOrigin: 'anonymous',
+    });
+
     icon.scaleToWidth(200);
     icon.set({
       left: 0,
       top: 0,
       clipPath: new fabric.Circle({
-        radius: 128,
+        radius: icon.width / 2,
         originX: 'center',
         originY: 'center',
         left: 0,
@@ -62,14 +69,14 @@ export default function Home() {
       objectCaching: false, // Disable object caching to get a smoother appearance with border
     });
     const circleBorder = new fabric.Circle({
-      radius: 110, // Slightly larger radius to create a border effect
-      fill: 'transparent', // Make the circle transparent
-      stroke: 'black', // Border color
-      strokeWidth: 10, // Border width
-      originX: 'center', // Center the circle
-      originY: 'center', // Center the circle
-      left: 100, // Center the border on the canvas
-      top: 100, // Center the border on the canvas
+      radius: 200 / 2 + 10,
+      fill: 'transparent',
+      stroke: 'black',
+      strokeWidth: 10,
+      originX: 'center',
+      originY: 'center',
+      left: 100,
+      top: 100,
     });
     circleBorder.scaleToWidth(200);
     const iconGroup = new fabric.Group([icon, circleBorder]);
@@ -240,13 +247,17 @@ export default function Home() {
     // };
     // animate(1);
 
-    const dataURL = canvas.toDataURL({
-      format: 'png',
-      quality: 1.0, // Quality for JPEG format (0.0 - 1.0)
-      multiplier: 1,
-    });
+    try {
+      const dataURL = canvas.toDataURL({
+        format: 'png',
+        quality: 1.0, // Quality for JPEG format (0.0 - 1.0)
+        multiplier: 1,
+      });
 
-    console.log(dataURL);
+      console.log(dataURL);
+    } catch (error) {
+      console.error(error);
+    }
   }, []);
 
   return (
@@ -285,27 +296,13 @@ export default function Home() {
               </h2>
               <button
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 transition-colors rounded-md text-white font-medium"
-                onClick={() => {
-                  if (canvasRef.current) {
-                    const dataURL = canvasRef.current.toDataURL({
-                      format: 'png',
-                      quality: 1.0,
-                    });
-                    const link = document.createElement('a');
-                    link.download = 'token-screenshot.png';
-                    link.href = dataURL;
-                    link.click();
-                  }
-                }}
+                onClick={() => {}}
               >
                 Download Image
               </button>
             </div>
-            <Canvas
-              ref={canvasRef}
-              onLoad={onLoad}
-              className="rounded-lg overflow-hidden"
-            />
+
+            <Canvas ref={canvasRef} onLoad={onLoad} />
           </div>
         </div>
       </div>
